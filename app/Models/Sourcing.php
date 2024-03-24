@@ -24,4 +24,20 @@ class Sourcing extends Model
         'total_cost',
         'additional_fees'
     ];
+
+    protected $appends = ['seller_name'];
+
+
+    public function history()
+    {
+        return $this->morphMany(History::class, 'trackable');
+    }
+
+    public function seller() {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function getSellerNameAttribute() {
+        return $this->seller->firstname . ' ' . $this->seller->lastname;
+    }
 }

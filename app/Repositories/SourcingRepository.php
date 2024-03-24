@@ -6,6 +6,7 @@ use App\Models\Sourcing;
 use Carbon\Carbon;
 use App\Repositories\Interfaces\SourcingRepositoryInterface;
 use Exception;
+use Illuminate\Support\Arr;
 
 class SourcingRepository  implements SourcingRepositoryInterface {
 
@@ -85,12 +86,12 @@ class SourcingRepository  implements SourcingRepositoryInterface {
     public function create($data) {
         $sourcing = Sourcing::create([
             'user_id' => auth()->id(),
-            'product_name' => $data['product_name'],
-            'product_url' => $data['product_url'],
-            'estimated_quantity' => $data['estimated_quantity'],
-            'destination_country' => $data['destination_country'],
-            'note_by_seller' => $data['note_by_seller'],
-            'shipping_method' => $data['shipping_method'],
+            'product_name' => data_get($data, 'product_name'),
+            'product_url' => data_get($data, 'product_url'),
+            'estimated_quantity' => data_get($data, 'estimated_quantity'),
+            'destination_country' => data_get($data, 'destination_country'),
+            'note_by_seller' => data_get($data, 'note_by_seller'),
+            'shipping_method' => data_get($data, 'shipping_method'),
             'quotation_status' => config('status.sourcings.quotation_status.default')['value'],
             'sourcing_status' => config('status.sourcings.sourcing_status.default')['value'],
             'cost_per_unit' => 0,
@@ -103,12 +104,24 @@ class SourcingRepository  implements SourcingRepositoryInterface {
         return $sourcing;
     }
 
+    public function get($id) {
+        return Sourcing::where('id', $id)->first();
+    }
+
     public function delete($id) {
 
     }
 
     public function update($id, $data) {
+        $sourcing = $this->get($id);
+        $keys = app(Sourcing::class)->getFillable();
+        $can_update_by_admin = array_values(array_diff($keys, ['user_id']));
+        $can_update_by_seller = array_values(array_diff($keys, ['user_id', 'note_by_admin', 'sourcing_status', 'cost_per_unit', 'total_cost', 'additional_fees']));
 
+        $sourcing->update(Arr::only($data, auth()->user()->hasRole('admin') ? $can_update_by_admin : $can_update_by_seller));
+
+        $sourcing->fresh();
+        return $data;
     }
 
 
